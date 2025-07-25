@@ -19,10 +19,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["user", "hotelOwner"],
+    enum: ["user","hotelOwner"],
     default: "user", 
   },
   recentSearchCities:[{type:String,required:true}]
 },{timestamps:true});
 
 export const User = mongoose.model("User", userSchema);
+
+

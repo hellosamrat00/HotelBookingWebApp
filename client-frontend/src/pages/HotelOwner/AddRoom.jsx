@@ -1,22 +1,84 @@
 import React, { useState } from "react";
 import Title from "../../components/Title";
 import { assets, dashboardDummyData } from "../../assets/assets.js";
+import { useAppContext } from "../../context/AppContext.jsx";
+import toast from "react-hot-toast";
 
 const AddRoom = () => {
+  const { axios, getToken } = useAppContext();
+  const [loading, setLoading] = useState(false);
+
   const [images, setImages] = useState({ 1: null, 2: null, 3: null, 4: null });
   const [input, setInput] = useState({
     roomType: "",
     pricePerNight: 0,
     amenities: {
-      "FreeWifi": false,
+      FreeWifi: false,
       "Free Breakfast": false,
       "Room services": false,
       "Mountain view": false,
       "Pool Access": false,
     },
   });
+  const onSubmitHandler = async (e) => {
+    e.preventDefault();
+    if (
+      !input.roomType ||
+      !input.pricePerNight ||
+      !input.amenities ||
+      !Object.values(images).some((image) => image)
+    ) {
+      toast.error("Please fill in all details");
+      return;
+    }
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("roomType", input.roomType);
+      formData.append("pricePerNight", input.pricePerNight);
+      const amenities = Object.keys(input.amenities).filter(
+        (key) => input.amenities[key]
+      );
+      formData.append("amenities", JSON.stringify(amenities));
+
+      Object.entries(images).forEach(([key, file]) => {
+        if (file) {
+          formData.append("images", file);
+        }
+      });
+      const { data } = await axios.post("/api/room", formData, {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      });
+      if (data.success) {
+        toast.success(data.message);
+        setInput({
+          roomType: "",
+          pricePerNight: 0,
+          amenities: {
+            FreeWifi: false,
+            "Free Breakfast": false,
+            "Room services": false,
+            "Mountain view": false,
+            "Pool Access": false,
+          },
+        });
+        setImages({ 1: null, 2: null, 3: null, 4: null });
+      } else {
+        toast.error(data.message || "Failed to add room");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+    finally{
+      setLoading(false)
+    }
+  };
+
+  if(loading){
+    return <h1>Loading</h1>
+  }
   return (
-    <form>
+    <form onSubmit={onSubmitHandler}>
       <Title
         title="Add room"
         subTitle="Fill in the details carefully and accurate room details, pricing, and amenities, to enhance the user booking experience."
@@ -72,20 +134,37 @@ const AddRoom = () => {
             className="border border-gray-300 mt-1 rounded p-2 w-24"
             type="number"
             value={input.pricePerNight}
-            onChange={e=> setInput({...input,pricePerNight:e.target.value})}
+            onChange={(e) =>
+              setInput({ ...input, pricePerNight: e.target.value })
+            }
           />
         </div>
       </div>
       <p className="text-gray-800 mt-4">Amenities</p>
       <div class="flex flex-col flex-wrap mt-1 text-gray-400 max-w-sm">
-       {Object.keys(input.amenities).map((amenity,index)=>(
-         <div key={index}>
-          <input id={`amenities${index+1}`} type="checkbox" checked={input.amenities[amenity]} onChange={()=> setInput({...input,amenities:{...input.amenities,[amenity]:!input.amenities[amenity]}})} />
-          <label for={`amenity${index+1}`}>{amenity} </label>
-        </div>
-       ))}
+        {Object.keys(input.amenities).map((amenity, index) => (
+          <div key={index}>
+            <input
+              id={`amenities${index + 1}`}
+              type="checkbox"
+              checked={input.amenities[amenity]}
+              onChange={() =>
+                setInput({
+                  ...input,
+                  amenities: {
+                    ...input.amenities,
+                    [amenity]: !input.amenities[amenity],
+                  },
+                })
+              }
+            />
+            <label for={`amenity${index + 1}`}>{amenity} </label>
+          </div>
+        ))}
       </div>
-      <button className="bg-primary text-white px-8 py-2 rounded mt-8 cursor-pointer">Add Room</button>
+      <button className="bg-primary text-white px-8 py-2 rounded mt-8 cursor-pointer">
+        Add Room
+      </button>
     </form>
   );
 };

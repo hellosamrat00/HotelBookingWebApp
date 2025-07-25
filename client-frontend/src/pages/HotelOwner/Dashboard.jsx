@@ -1,9 +1,38 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Title from "../../components/Title";
 import { assets, dashboardDummyData } from "../../assets/assets.js";
+import { useAppContext } from "../../context/AppContext.jsx";
 
 const Dashboard = () => {
-  const [dashboarddata, setDashboardData] = useState(dashboardDummyData);
+  const { axios, getToken } = useAppContext();
+
+  const [dashboarddata, setDashboardData] = useState({
+    totalBookings: 0,
+    totalRevenue: 0,
+    bookings: [],
+  });
+  useEffect(() => {
+    const getDashboardData = async () => {
+      try {
+        const response = await axios.get("/api/booking/hotel", {
+          headers: {
+            Authorization: `Bearer ${await getToken()}`,
+          },
+        });
+        if (response.data.success) {
+          setDashboardData(response.data.dashboardData);
+          console.log(response.data.dashboardData); // ✅ this will work
+        } else {
+          console.error("Failed to fetch dashboard data");
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    getDashboardData(); // ✅ Correct placement
+  }, []);
+
   return (
     <div>
       <Title
@@ -59,7 +88,7 @@ const Dashboard = () => {
             </tr>
           </thead>
           <tbody class="text-sm">
-            {dashboarddata.bookings.map((item,index)=>(
+            {dashboarddata.bookings.map((item, index) => (
               <tr key={index}>
                 <td className="py-3 px-4 text-gray-700 border-t border-gray-300">
                   {item.user.username}
@@ -67,18 +96,21 @@ const Dashboard = () => {
                 <td className="py-3 px-4 text-gray-700 border-t border-gray-300 max-sm:hidden">
                   {item.room.roomType}
                 </td>
-                 <td className="py-3 px-4 text-gray-700 border-t border-gray-300 text-center">
-                 $ {item.totalPrice}
+                <td className="py-3 px-4 text-gray-700 border-t border-gray-300 text-center">
+                  $ {item.totalPrice}
                 </td>
                 <td className="py-3 px-4 flex border-t border-gray-300 text-center">
-                  <button className={`py-1 px-3 text-xs rounded-full mx-auto ${item.isPaid ? 'bg-green-200 text-green-600':"bg-red-200 text-yellow-500"}`}>
-                    {item.isPaid ? "Completed" :"Pending"}
+                  <button
+                    className={`py-1 px-3 text-xs rounded-full mx-auto ${
+                      item.isPaid
+                        ? "bg-green-200 text-green-600"
+                        : "bg-red-200 text-yellow-500"
+                    }`}
+                  >
+                    {item.isPaid ? "Completed" : "Pending"}
                   </button>
                 </td>
-                
-
               </tr>
-
             ))}
           </tbody>
         </table>
